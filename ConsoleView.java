@@ -18,13 +18,11 @@ public class ConsoleView implements IView {
 
     @Override
     public void afficherMenu() {
-        System.out.println(CYAN + "\n--- MENU DU JEU (SOLID) ---" + RESET);
-        System.out.println("1. Démarrer le jeu du Pendu");
+        System.out.println(CYAN + "\n--- MENU DU JEU ---" + RESET);
+        System.out.println("1. Jouer une partie");
         System.out.println("2. Jouer contre l'IA (Duel)");
-        System.out.println("3. Rejouer une partie de l'historique");
-        System.out.println("4. Statistiques globales");
-        System.out.println("5. Lancer les tests unitaires");
-        System.out.println("6. Quitter");
+        System.out.println("3. Lancer les tests unitaires");
+        System.out.println("4. Quitter");
     }
 
     @Override
