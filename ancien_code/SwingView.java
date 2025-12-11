@@ -1,4 +1,5 @@
 import javax.swing.*;
+import javax.swing.text.*;
 import java.awt.*;
 import java.util.List;
 
@@ -17,7 +18,7 @@ public class SwingView implements IView {
     private JLabel statusLabel;
     private JPanel hangmanPanel;
     private JPanel keyboardPanel;
-    private JTextArea infoArea;
+    private JTextPane infoPane; // Changed from JTextArea to JTextPane for styling
     private List<JButton> letterButtons;
     
     private String currentInput = null;
@@ -35,7 +36,7 @@ public class SwingView implements IView {
 
         frame = new JFrame("Jeu du Pendu - Java Edition");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(1000, 750);
+        frame.setSize(1100, 800);
         frame.setLocationRelativeTo(null);
 
         cardLayout = new CardLayout();
@@ -111,11 +112,14 @@ public class SwingView implements IView {
         hangmanPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
         gamePanel.add(hangmanPanel, BorderLayout.CENTER);
 
-        // Right: Logs
-        infoArea = new JTextArea(20, 25);
-        infoArea.setEditable(false);
-        infoArea.setFont(new Font("Consolas", Font.PLAIN, 12));
-        gamePanel.add(new JScrollPane(infoArea), BorderLayout.EAST);
+        // Right: Logs (Styled)
+        infoPane = new JTextPane();
+        infoPane.setEditable(false);
+        infoPane.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        JScrollPane scrollPane = new JScrollPane(infoPane);
+        scrollPane.setPreferredSize(new Dimension(300, 0));
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Historique de la partie"));
+        gamePanel.add(scrollPane, BorderLayout.EAST);
 
         // Bottom: Keyboard & Message
         JPanel bottomPanel = new JPanel(new BorderLayout());
@@ -169,67 +173,112 @@ public class SwingView implements IView {
         }
     }
 
+    private void appendToLog(String text, Color color, boolean bold) {
+        SwingUtilities.invokeLater(() -> {
+            StyledDocument doc = infoPane.getStyledDocument();
+            SimpleAttributeSet keyWord = new SimpleAttributeSet();
+            StyleConstants.setForeground(keyWord, color);
+            StyleConstants.setBold(keyWord, bold);
+            try {
+                doc.insertString(doc.getLength(), text + "\n", keyWord);
+                infoPane.setCaretPosition(doc.getLength());
+            } catch (BadLocationException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     private void drawHangman(Graphics g, int vies) {
         Graphics2D g2 = (Graphics2D) g;
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setStroke(new BasicStroke(4));
+        g2.setStroke(new BasicStroke(5)); 
         
         int w = hangmanPanel.getWidth();
         int h = hangmanPanel.getHeight();
         
+        // Background
         g2.setColor(Color.WHITE);
         g2.fillRect(0,0,w,h);
-        g2.setColor(new Color(50, 50, 50));
         
-        // Base coordinates
         int baseX = w / 2 - 100;
         int baseY = h - 50;
         
-        if (vies <= 5) g2.drawLine(baseX, baseY, baseX + 200, baseY); // Base
-        if (vies <= 4) g2.drawLine(baseX + 50, baseY, baseX + 50, baseY - 300);  // Poteau
-        if (vies <= 3) g2.drawLine(baseX + 50, baseY - 300, baseX + 150, baseY - 300);    // Traverse
-        if (vies <= 2) g2.drawLine(baseX + 150, baseY - 300, baseX + 150, baseY - 250);   // Corde
+        // --- ALWAYS DRAW GALLOWS ---
+        g2.setColor(new Color(100, 50, 0)); // Brown
+        g2.drawLine(baseX, baseY, baseX + 200, baseY); // Base
+        g2.drawLine(baseX + 50, baseY, baseX + 50, baseY - 300);  // Pole
+        g2.drawLine(baseX + 50, baseY - 300, baseX + 150, baseY - 300);    // Top bar
+        g2.setColor(new Color(200, 150, 50)); // Rope color
+        g2.drawLine(baseX + 150, baseY - 300, baseX + 150, baseY - 250);   // Rope
         
-        g2.setColor(new Color(139, 0, 0)); // Dark Red for the stickman
-        if (vies <= 1) {
-            g2.setStroke(new BasicStroke(3));
-            g2.drawOval(baseX + 130, baseY - 250, 40, 40);    // Tête
+        // --- DRAW MAN PROGRESSIVELY (6 Lives) ---
+        int mistakes = 6 - vies;
+        
+        g2.setColor(Color.BLACK);
+        g2.setStroke(new BasicStroke(4));
+        
+        // 1. Head
+        if (mistakes >= 1) {
+            g2.drawOval(baseX + 130, baseY - 250, 40, 40);
         }
-        if (vies <= 0) {
-            g2.drawLine(baseX + 150, baseY - 210, baseX + 150, baseY - 130); // Corps
-            g2.drawLine(baseX + 150, baseY - 200, baseX + 120, baseY - 160); // Bras G
-            g2.drawLine(baseX + 150, baseY - 200, baseX + 180, baseY - 160); // Bras D
-            g2.drawLine(baseX + 150, baseY - 130, baseX + 120, baseY - 80); // Jambe G
-            g2.drawLine(baseX + 150, baseY - 130, baseX + 180, baseY - 80); // Jambe D
+        
+        // 2. Body
+        if (mistakes >= 2) {
+            g2.drawLine(baseX + 150, baseY - 210, baseX + 150, baseY - 130);
+        }
+        
+        // 3. Left Arm
+        if (mistakes >= 3) {
+            g2.drawLine(baseX + 150, baseY - 200, baseX + 120, baseY - 160);
+        }
+        
+        // 4. Right Arm
+        if (mistakes >= 4) {
+            g2.drawLine(baseX + 150, baseY - 200, baseX + 180, baseY - 160);
+        }
+        
+        // 5. Left Leg
+        if (mistakes >= 5) {
+            g2.drawLine(baseX + 150, baseY - 130, baseX + 120, baseY - 80);
+        }
+        
+        // 6. Right Leg (Game Over)
+        if (mistakes >= 6) {
+            g2.drawLine(baseX + 150, baseY - 130, baseX + 180, baseY - 80);
+            
+            // Dead eyes (X X)
+            g2.setStroke(new BasicStroke(2));
+            g2.drawLine(baseX + 140, baseY - 235, baseX + 145, baseY - 240);
+            g2.drawLine(baseX + 140, baseY - 240, baseX + 145, baseY - 235);
+            g2.drawLine(baseX + 155, baseY - 235, baseX + 160, baseY - 240);
+            g2.drawLine(baseX + 155, baseY - 240, baseX + 160, baseY - 235);
         }
     }
 
     @Override
     public void afficherMenu() {
-        SwingUtilities.invokeLater(() -> cardLayout.show(mainPanel, "MENU"));
+        SwingUtilities.invokeLater(() -> {
+            cardLayout.show(mainPanel, "MENU");
+            infoPane.setText(""); // Clear logs
+        });
     }
 
     @Override
     public void afficherMessage(String message) {
-        SwingUtilities.invokeLater(() -> {
-            infoArea.append(message + "\n");
-            infoArea.setCaretPosition(infoArea.getDocument().getLength());
-            messageLabel.setText(message);
-        });
+        appendToLog(message, Color.BLACK, false);
+        SwingUtilities.invokeLater(() -> messageLabel.setText(message));
     }
 
     @Override
     public void afficherMessageErreur(String message) {
-        SwingUtilities.invokeLater(() -> {
-            infoArea.append("ERREUR: " + message + "\n");
-            JOptionPane.showMessageDialog(frame, message, "Erreur", JOptionPane.ERROR_MESSAGE);
-        });
+        appendToLog("❌ " + message, Color.RED, true);
+        SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(frame, message, "Erreur", JOptionPane.ERROR_MESSAGE));
     }
 
     @Override
     public void afficherMessageSucces(String message) {
+        appendToLog("✅ " + message, new Color(0, 100, 0), true);
         SwingUtilities.invokeLater(() -> {
-            infoArea.append("SUCCES: " + message + "\n");
             messageLabel.setText(message);
             messageLabel.setForeground(new Color(0, 100, 0));
         });
@@ -273,10 +322,7 @@ public class SwingView implements IView {
     @Override
     public void afficherEtatJeuDuel(char[] motCache, int vies, List<Character> lettresEssayees, List<Character> lettresTrouveesJoueur, List<Character> lettresTrouveesIA) {
         afficherEtatJeu(motCache, vies, lettresEssayees);
-        SwingUtilities.invokeLater(() -> {
-            infoArea.append("Joueur: " + lettresTrouveesJoueur + "\n");
-            infoArea.append("IA: " + lettresTrouveesIA + "\n");
-        });
+        // We don't need to print the lists manually anymore as the logs will show the moves
     }
 
     @Override
@@ -301,5 +347,14 @@ public class SwingView implements IView {
         } catch (NumberFormatException e) {
             return -1;
         }
+    }
+
+    @Override
+    public boolean demanderRejouer() {
+        int response = JOptionPane.showConfirmDialog(frame, 
+            "La partie est terminée. Voulez-vous rejouer ?", 
+            "Fin de partie", 
+            JOptionPane.YES_NO_OPTION);
+        return response == JOptionPane.YES_OPTION;
     }
 }

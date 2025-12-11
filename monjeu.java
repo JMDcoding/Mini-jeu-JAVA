@@ -2,24 +2,32 @@ import javax.swing.JOptionPane;
 
 public class monjeu {
     public static void main(String[] args) {
-        // Demander à l'utilisateur le mode d'affichage
-        String[] options = {"Console", "Graphique (Swing)"};
-        int choix = JOptionPane.showOptionDialog(null, "Choisissez le mode d'affichage", "Mode de jeu",
-                JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[1]);
+        // Demander à l'utilisateur quel mode d'affichage il préfère
+        String[] options = {"Console", "Graphique (Fenêtre)"};
+        int choix = JOptionPane.showOptionDialog(null, 
+            "Comment voulez-vous jouer ?", 
+            "Choix de l'affichage",
+            JOptionPane.DEFAULT_OPTION, 
+            JOptionPane.QUESTION_MESSAGE, 
+            null, 
+            options, 
+            options[1]); // Par défaut Graphique
 
-        IView view;
+        Affichage affichage;
+
         if (choix == 0) {
-            view = new ConsoleView();
+            // Mode Console
+            affichage = new AffichageConsole();
         } else {
-            view = new SwingView();
+            // Mode Graphique
+            affichage = new AffichageGraphique();
         }
-        
-        // Initialisation du jeu
-        HangmanGame game = new HangmanGame(view);
-        
-        // Lancer le jeu dans un thread séparé pour ne pas bloquer l'EDT si on est en mode graphique
+
+        // Création et lancement du jeu
+        // On utilise un Thread pour ne pas bloquer l'interface graphique
         new Thread(() -> {
-            game.start();
+            JeuPendu jeu = new JeuPendu(affichage);
+            jeu.demarrer();
         }).start();
     }
 }

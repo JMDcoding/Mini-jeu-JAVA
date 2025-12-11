@@ -101,4 +101,10 @@ public class ConsoleView implements IView {
             return -1;
         }
     }
+
+    @Override
+    public boolean demanderRejouer() {
+        String reponse = demanderSaisie("Voulez-vous rejouer ? (O/N) : ");
+        return reponse.equalsIgnoreCase("O");
+    }
 }

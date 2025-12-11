@@ -1,38 +1,43 @@
 import java.util.List;
 
+// IA "Intelligente" qui utilise la fréquence des lettres et tente de deviner le mot
 public class SmartAI implements IAIStrategy {
+    // Ordre de fréquence des lettres en français (du plus fréquent au moins fréquent)
     private String frequence = "ESAINTRULODCPMVGFBHQJYZKWX";
 
     @Override
     public String choisirCoup(List<Character> lettresEssayees, String motADeviner) {
-        // Vérifier si l'IA peut deviner le mot complet
+        // 1. Analyser l'état actuel du mot
         int lettresTrouvees = 0;
         int lettresUniques = 0;
         
         for (int i = 0; i < motADeviner.length(); i++) {
             char c = motADeviner.charAt(i);
-            // Compter les lettres uniques pour le ratio
+            // On compte chaque lettre unique du mot
             if (motADeviner.indexOf(c) == i) {
                 lettresUniques++;
+                // Si cette lettre a déjà été trouvée
                 if (lettresEssayees.contains(c)) {
                     lettresTrouvees++;
                 }
             }
         }
 
-        // Si plus de 60% des lettres sont trouvées, l'IA tente le mot complet
-        if (lettresUniques > 0 && (double) lettresTrouvees / lettresUniques > 0.6) {
+        // 2. Si l'IA a trouvé plus de 60% des lettres, elle tente de deviner le mot complet
+        double ratio = (double) lettresTrouvees / lettresUniques;
+        if (lettresUniques > 0 && ratio > 0.6) {
             return motADeviner;
         }
 
-        // Sinon, stratégie classique par fréquence
+        // 3. Sinon, elle propose la lettre la plus fréquente non encore essayée
         for (int i = 0; i < frequence.length(); i++) {
             char c = frequence.charAt(i);
             if (!lettresEssayees.contains(c)) {
                 return String.valueOf(c);
             }
         }
-        return " ";
+        
+        return " "; // Ne devrait pas arriver
     }
 
     @Override

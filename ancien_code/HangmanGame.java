@@ -4,38 +4,51 @@ import java.util.Random;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.stream.Collectors;
 
+// Classe principale qui gère la logique du jeu
 public class HangmanGame {
-    private IView view;
-    private List<String> mots;
+    private IView view; // L'interface pour l'affichage (Console ou Graphique)
+    private List<String> mots; // La liste des mots possibles
     
     public HangmanGame(IView view) {
         this.view = view;
         chargerMots();
     }
 
+    // Charge les mots depuis le fichier texte
     private void chargerMots() {
         try {
-            this.mots = Files.lines(Paths.get("mots.txt"))
-                             .map(String::toUpperCase)
-                             .filter(mot -> !mot.trim().isEmpty())
-                             .collect(Collectors.toList());
+            // Lecture de toutes les lignes du fichier
+            List<String> lignes = Files.readAllLines(Paths.get("mots.txt"));
+            this.mots = new ArrayList<>();
+            
+            // On garde seulement les mots valides (pas vides) et on les met en majuscules
+            for (String ligne : lignes) {
+                if (!ligne.trim().isEmpty()) {
+                    this.mots.add(ligne.trim().toUpperCase());
+                }
+            }
+
+            // Si la liste est vide, on charge des mots par défaut
             if (this.mots.isEmpty()) {
                 chargerMotsParDefaut();
                 view.afficherMessageErreur("Le fichier mots.txt est vide. Utilisation d'une liste par défaut.");
             }
         } catch (IOException e) {
+            // En cas d'erreur de lecture (fichier absent), on charge les mots par défaut
             chargerMotsParDefaut();
             view.afficherMessageErreur("Fichier mots.txt introuvable. Utilisation d'une liste par défaut.");
         }
     }
 
     private void chargerMotsParDefaut() {
-        this.mots = new ArrayList<>(List.of("JAVA", "DEVELOPPEUR", "ALGORITHME"));
+        this.mots = new ArrayList<>();
+        this.mots.add("JAVA");
+        this.mots.add("DEVELOPPEUR");
+        this.mots.add("ALGORITHME");
     }
 
+    // Méthode principale qui lance le menu du jeu
     public void start() {
         boolean continuer = true;
         while (continuer) {
@@ -43,10 +56,14 @@ public class HangmanGame {
             int choix = view.demanderEntier("Votre choix : ");
             switch (choix) {
                 case 1: 
-                    jouerPartieSolo(); 
+                    do {
+                        jouerPartieSolo(); 
+                    } while (view.demanderRejouer());
                     break;
                 case 2:
-                    jouerDuelIA();
+                    do {
+                        jouerDuelIA();
+                    } while (view.demanderRejouer());
                     break;
                 case 3:
                     GameTests.lancerTests();
@@ -61,6 +78,7 @@ public class HangmanGame {
         }
     }
 
+    // Logique d'une partie en solo
     private void jouerPartieSolo() {
         String motADeviner = choisirMotAleatoire();
         if (motADeviner == null) {
@@ -68,7 +86,7 @@ public class HangmanGame {
             return;
         }
         
-        char[] motCache = masquerMot(motADeviner);
+        char[] motCache = masquerMot(motADeviner); // Crée le tableau de tirets (ex: _ _ _ _)
         int vies = 6;
         List<Character> lettresEssayees = new ArrayList<>();
         boolean gagne = false;
@@ -76,39 +94,51 @@ public class HangmanGame {
 
         view.afficherMessageSucces("\n--- DÉBUT DU JEU DU PENDU ---");
 
+        // Boucle principale du jeu
         while (vies > 0 && !gagne) {
             view.afficherPendu(vies);
             view.afficherEtatJeu(motCache, vies, lettresEssayees);
+            
+            // Demande une lettre ou un mot au joueur
             String input = view.demanderSaisie("Proposez une lettre ou devinez le mot : ").toUpperCase();
 
+            // Si le joueur propose un mot complet
             if (input.length() > 1) {
                 if (input.equals(motADeviner)) {
                     gagne = true;
-                    motCache = motADeviner.toCharArray();
+                    motCache = motADeviner.toCharArray(); // On révèle tout le mot
                 } else {
                     view.afficherMessageErreur("Ce n'est pas le bon mot !");
-                    vies--;
+                    vies--; // Pénalité
+                    view.afficherPendu(vies); // Mise à jour immédiate du dessin
                 }
-            } else if (input.length() == 1 && Character.isLetter(input.charAt(0))) {
+            } 
+            // Si le joueur propose une seule lettre
+            else if (input.length() == 1 && Character.isLetter(input.charAt(0))) {
                 char lettre = input.charAt(0);
+                
+                // Vérifie si la lettre a déjà été jouée
                 if (lettresEssayees.contains(lettre)) {
                     view.afficherMessage("Vous avez déjà essayé cette lettre.");
-                    continue;
+                    continue; // On passe au tour suivant sans pénalité
                 }
                 
                 lettresEssayees.add(lettre);
 
+                // Vérifie si la lettre est dans le mot
                 if (motADeviner.indexOf(lettre) >= 0) {
                     view.afficherMessageSucces("Bonne lettre !");
                     revelerLettre(motADeviner, motCache, lettre);
                 } else {
                     view.afficherMessageErreur("Mauvaise lettre !");
                     vies--;
+                    view.afficherPendu(vies); // Mise à jour immédiate du dessin
                 }
             } else {
                 view.afficherMessageErreur("Saisie invalide.");
             }
 
+            // Vérifie si le mot est entièrement découvert
             if (String.valueOf(motCache).equals(motADeviner)) {
                 gagne = true;
             }
@@ -118,6 +148,7 @@ public class HangmanGame {
         finDePartie(motADeviner, gagne, duree);
     }
 
+    // Logique du duel contre l'IA
     private void jouerDuelIA() {
         view.afficherMessageSucces("\n--- DUEL CONTRE L'IA ---");
         String motADeviner = choisirMotAleatoire();
@@ -126,9 +157,15 @@ public class HangmanGame {
             return;
         }
         
+        // Choix de la difficulté de l'IA
         view.afficherMessage("1. Simple\n2. Sophistiquée");
         int choix = view.demanderEntier("Niveau IA : ");
-        IAIStrategy ia = (choix == 2) ? new SmartAI() : new RandomAI();
+        IAIStrategy ia;
+        if (choix == 2) {
+            ia = new SmartAI();
+        } else {
+            ia = new RandomAI();
+        }
 
         char[] motCache = masquerMot(motADeviner);
         List<Character> lettresEssayees = new ArrayList<>();
@@ -139,7 +176,7 @@ public class HangmanGame {
         String gagnant = "";
 
         while (!gagne) {
-            // Tour Joueur
+            // --- Tour du Joueur ---
             view.afficherEtatJeuDuel(motCache, 6, lettresEssayees, lettresTrouveesJoueur, lettresTrouveesIA);
             String input = view.demanderSaisie("Votre tour (lettre ou mot) : ").toUpperCase();
             
@@ -147,10 +184,6 @@ public class HangmanGame {
                 if (input.equals(motADeviner)) {
                     gagne = true;
                     gagnant = "JOUEUR";
-                    // Tout révéler pour le joueur
-                    for(char c : motADeviner.toCharArray()) {
-                        if(!lettresTrouveesIA.contains(c)) lettresTrouveesJoueur.add(c);
-                    }
                     motCache = motADeviner.toCharArray();
                     break;
                 } else {
@@ -178,9 +211,9 @@ public class HangmanGame {
                 break;
             }
 
-            // Tour IA
+            // --- Tour de l'IA ---
             view.afficherMessage("\nL'IA (" + ia.getNom() + ") réfléchit...");
-            try { Thread.sleep(1000); } catch (Exception e) {}
+            try { Thread.sleep(1000); } catch (Exception e) {} // Petite pause pour le réalisme
             
             String coupIA = ia.choisirCoup(lettresEssayees, motADeviner);
             
@@ -189,7 +222,7 @@ public class HangmanGame {
                 if (coupIA.equals(motADeviner)) {
                     gagne = true;
                     gagnant = "IA";
-                    motCache = motADeviner.toCharArray(); // Révéler le mot
+                    motCache = motADeviner.toCharArray();
                     break;
                 } else {
                     view.afficherMessageErreur("L'IA s'est trompée de mot !");
@@ -207,8 +240,6 @@ public class HangmanGame {
                     } else {
                         view.afficherMessageErreur("L'IA a raté.");
                     }
-                } else {
-                     view.afficherMessage("L'IA a essayé une lettre déjà jouée (bizarre...).");
                 }
             }
 
@@ -225,19 +256,25 @@ public class HangmanGame {
         if (mots == null || mots.isEmpty()) {
             return null;
         }
-        return mots.get(new Random().nextInt(mots.size()));
+        Random random = new Random();
+        int index = random.nextInt(mots.size());
+        return mots.get(index);
     }
 
+    // Remplace chaque lettre du mot par un tiret '_'
     char[] masquerMot(String mot) {
-        char[] t = new char[mot.length()];
-        for (int i = 0; i < t.length; i++) t[i] = '_';
-        return t;
+        char[] tableau = new char[mot.length()];
+        for (int i = 0; i < tableau.length; i++) {
+            tableau[i] = '_';
+        }
+        return tableau;
     }
 
-    void revelerLettre(String mot, char[] cache, char lettre) {
+    // Révèle les occurrences de la lettre trouvée dans le mot caché
+    void revelerLettre(String mot, char[] motCache, char lettre) {
         for (int i = 0; i < mot.length(); i++) {
             if (mot.charAt(i) == lettre) {
-                cache[i] = lettre;
+                motCache[i] = lettre;
             }
         }
     }
@@ -247,7 +284,7 @@ public class HangmanGame {
             view.afficherMessageSucces("GAGNÉ ! Le mot était : " + mot);
         } else {
             view.afficherPendu(0);
-            view.afficherMessageErreur("PERDU ! Le mot était : " + mot);
+            view.afficherMessageErreur("MATCH NUL ! Le mot était : " + mot);
         }
         view.afficherMessage("Partie terminée en " + duree + " secondes.");
     }
