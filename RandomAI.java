@@ -1,0 +1,29 @@
+import java.util.List;
+import java.util.Random;
+
+public class RandomAI implements IAIStrategy {
+    private Random random = new Random();
+
+    @Override
+    public char choisirLettre(List<Character> lettresEssayees, String motADeviner) {
+        char lettre;
+        int tentatives = 0;
+        do {
+            lettre = (char) ('A' + random.nextInt(26));
+            tentatives++;
+        } while (lettresEssayees.contains(lettre) && tentatives < 100);
+        
+        // Fallback
+        if (lettresEssayees.contains(lettre)) {
+             for(char c = 'A'; c <= 'Z'; c++) {
+                 if(!lettresEssayees.contains(c)) return c;
+             }
+        }
+        return lettre;
+    }
+
+    @Override
+    public String getNom() {
+        return "Aléatoire";
+    }
+}
