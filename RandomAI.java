@@ -5,7 +5,7 @@ public class RandomAI implements IAIStrategy {
     private Random random = new Random();
 
     @Override
-    public char choisirLettre(List<Character> lettresEssayees, String motADeviner) {
+    public String choisirCoup(List<Character> lettresEssayees, String motADeviner) {
         char lettre;
         int tentatives = 0;
         do {
@@ -16,10 +16,10 @@ public class RandomAI implements IAIStrategy {
         // Fallback
         if (lettresEssayees.contains(lettre)) {
              for(char c = 'A'; c <= 'Z'; c++) {
-                 if(!lettresEssayees.contains(c)) return c;
+                 if(!lettresEssayees.contains(c)) return String.valueOf(c);
              }
         }
-        return lettre;
+        return String.valueOf(lettre);
     }
 
     @Override

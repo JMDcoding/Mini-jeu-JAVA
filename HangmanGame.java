@@ -181,16 +181,35 @@ public class HangmanGame {
             // Tour IA
             view.afficherMessage("\nL'IA (" + ia.getNom() + ") réfléchit...");
             try { Thread.sleep(1000); } catch (Exception e) {}
-            char lettreIA = ia.choisirLettre(lettresEssayees, motADeviner);
-            view.afficherMessage("L'IA joue : " + lettreIA);
-            lettresEssayees.add(lettreIA);
             
-            if (motADeviner.indexOf(lettreIA) >= 0) {
-                view.afficherMessageSucces("L'IA a trouvé !");
-                lettresTrouveesIA.add(lettreIA);
-                revelerLettre(motADeviner, motCache, lettreIA);
+            String coupIA = ia.choisirCoup(lettresEssayees, motADeviner);
+            
+            if (coupIA.length() > 1) {
+                view.afficherMessage("L'IA tente le mot : " + coupIA);
+                if (coupIA.equals(motADeviner)) {
+                    gagne = true;
+                    gagnant = "IA";
+                    motCache = motADeviner.toCharArray(); // Révéler le mot
+                    break;
+                } else {
+                    view.afficherMessageErreur("L'IA s'est trompée de mot !");
+                }
             } else {
-                view.afficherMessageErreur("L'IA a raté.");
+                char lettreIA = coupIA.charAt(0);
+                view.afficherMessage("L'IA joue : " + lettreIA);
+                
+                if (!lettresEssayees.contains(lettreIA)) {
+                    lettresEssayees.add(lettreIA);
+                    if (motADeviner.indexOf(lettreIA) >= 0) {
+                        view.afficherMessageSucces("L'IA a trouvé !");
+                        lettresTrouveesIA.add(lettreIA);
+                        revelerLettre(motADeviner, motCache, lettreIA);
+                    } else {
+                        view.afficherMessageErreur("L'IA a raté.");
+                    }
+                } else {
+                     view.afficherMessage("L'IA a essayé une lettre déjà jouée (bizarre...).");
+                }
             }
 
             if (String.valueOf(motCache).equals(motADeviner)) {
